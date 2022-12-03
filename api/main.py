@@ -12,6 +12,7 @@ class Features(BaseModel):
     workingday: int
     weathersit: int
     temp: float
+    atemp: float
     hum: float
     windspeed: float
 
@@ -22,7 +23,8 @@ class Features(BaseModel):
                 "mnth":7.,
                 "holiday": 0.,
                 "weekday": 6.,
-                "workingday": 1,
+                "workingday": 0,
+                "weathersit": 1,
                 "temp": 0.686667,
                 "atemp": 0.638263,
                 "hum": 0.585,
@@ -36,18 +38,36 @@ class Message(BaseModel):
     message: float
 
 
-app = FastAPI(
-    title="Rents for FastAPI",
-    description=description,
-    version="1.0.0",
-    terms_of_service=""
-)
+app = FastAPI()
 
-@app.post("/rentals",
+@app.post("/rentals/",
 response_model= Label,
 status_code=status.HTTP_200_OK,
 summary="Rentals",
 description="Rentals",
-tags=["Rentals"]
+tags=["Rentals daily bikes"]
 )
-async def get_rentals
+async def get_rentals(features:Features):
+    try:
+        model = load('model.joblib')
+        data = [
+            features.season,
+            features.mnth,
+            features.holiday,
+            features.weekday,
+            features.workingday,
+            features.weathersit,
+            features.temp,
+            features.atemp,
+            features.hum,
+            features.windspeed,
+        ]
+        predicitions = model.predict([data])
+        response = {"rentals": predicitions[0]}
+        return response
+    except Exception as e:
+        response = JSONResponse(
+            status_code=400,
+            content={"message":f"{e.args}"}
+        )
+        return response
